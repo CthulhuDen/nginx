@@ -31,6 +31,14 @@ static void *ngx_stream_upstream_create_main_conf(ngx_conf_t *cf);
 static char *ngx_stream_upstream_init_main_conf(ngx_conf_t *cf, void *conf);
 
 
+static ngx_conf_enum_t  ngx_stream_upstream_proxy_protocol_versions[] = {
+    { ngx_string("off"), 0 },
+    { ngx_string("on"), 1 },
+    { ngx_string("v2"), 2 },
+    { ngx_null_string, 0 }
+};
+
+
 static ngx_command_t  ngx_stream_upstream_commands[] = {
 
     { ngx_string("upstream"),
@@ -46,6 +54,13 @@ static ngx_command_t  ngx_stream_upstream_commands[] = {
       NGX_STREAM_SRV_CONF_OFFSET,
       0,
       NULL },
+
+    { ngx_string("proxy_protocol"),
+      NGX_STREAM_UPS_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_STREAM_SRV_CONF_OFFSET,
+      offsetof(ngx_stream_upstream_srv_conf_t, proxy_protocol),
+      &ngx_stream_upstream_proxy_protocol_versions },
 
 #if (NGX_STREAM_UPSTREAM_ZONE)
 
@@ -788,6 +803,7 @@ ngx_stream_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
     uscf->line = cf->conf_file->line;
     uscf->port = u->port;
     uscf->no_port = u->no_port;
+    uscf->proxy_protocol = NGX_CONF_UNSET_UINT;
 #if (NGX_STREAM_UPSTREAM_ZONE)
     uscf->resolver_timeout = NGX_CONF_UNSET_MSEC;
 #endif
