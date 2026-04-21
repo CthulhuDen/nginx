@@ -1,0 +1,67 @@
+name: docker-image
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_image:
+        description: Upstream nginx image to inherit entrypoint, /etc/nginx, and configure flags from
+        type: string
+        default: nginx:1.30-alpine3.23
+      alpine_image:
+        description: Alpine base image used for the builder and final stages
+        type: string
+        default: alpine:3.23
+      push:
+        description: Push to GHCR (uncheck for build-only dry run)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: version
+        run: |
+          v=$(sed -n 's/^#define NGINX_VERSION *"\(.*\)".*/\1/p' src/core/nginx.h)
+          echo "nginx=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: ${{ inputs.push }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/nginx
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.nginx }}
+            type=sha,format=short
+            type=ref,event=branch
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/alpine/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UPSTREAM_IMAGE=${{ inputs.upstream_image }}
+            ALPINE_IMAGE=${{ inputs.alpine_image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
