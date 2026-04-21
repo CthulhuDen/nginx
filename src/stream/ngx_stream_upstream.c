@@ -47,6 +47,13 @@ static ngx_command_t  ngx_stream_upstream_commands[] = {
       0,
       NULL },
 
+    { ngx_string("proxy_protocol"),
+      NGX_STREAM_UPS_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_STREAM_SRV_CONF_OFFSET,
+      offsetof(ngx_stream_upstream_srv_conf_t, proxy_protocol),
+      NULL },
+
 #if (NGX_STREAM_UPSTREAM_ZONE)
 
     { ngx_string("resolver"),
@@ -788,6 +795,7 @@ ngx_stream_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
     uscf->line = cf->conf_file->line;
     uscf->port = u->port;
     uscf->no_port = u->no_port;
+    uscf->proxy_protocol = NGX_CONF_UNSET;
 #if (NGX_STREAM_UPSTREAM_ZONE)
     uscf->resolver_timeout = NGX_CONF_UNSET_MSEC;
 #endif

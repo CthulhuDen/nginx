@@ -738,6 +738,10 @@ ngx_stream_proxy_connect(ngx_stream_session_t *s)
     u->connected = 0;
     u->proxy_protocol = pscf->proxy_protocol;
 
+    if (u->upstream && u->upstream->proxy_protocol != NGX_CONF_UNSET) {
+        u->proxy_protocol = u->upstream->proxy_protocol;
+    }
+
     if (u->state) {
         u->state->response_time = ngx_current_msec - u->start_time;
     }
